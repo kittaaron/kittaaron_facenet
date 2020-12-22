@@ -36,7 +36,8 @@ import argparse
 import facenet
 import align.detect_face
 
-def main(args):
+
+def main(args, dirname = None):
 
     images = load_and_align_data(args.image_files, args.image_size, args.margin, args.gpu_memory_fraction)
     with tf.Graph().as_default():
@@ -57,10 +58,10 @@ def main(args):
             
             nrof_images = len(args.image_files)
 
-            print('Images:')
-            for i in range(nrof_images):
-                print('%1d: %s' % (i, args.image_files[i]))
-            print('')
+            #print('Images:')
+            #for i in range(nrof_images):
+            #    print('%1d: %s' % (i, args.image_files[i]))
+            #print('')
             
             # Print distance matrix
             print('Distance matrix')
@@ -68,12 +69,26 @@ def main(args):
             for i in range(nrof_images):
                 print('    %1d     ' % i, end='')
             print('')
+            has_abnormal = False
+            suspicious = False
             for i in range(nrof_images):
                 print('%1d  ' % i, end='')
                 for j in range(nrof_images):
                     dist = np.sqrt(np.sum(np.square(np.subtract(emb[i,:], emb[j,:]))))
+                    if dist >= 1.1:
+                        has_abnormal = True
+                    if 1.0 <= dist < 1.1:
+                        suspicious = True
                     print('  %1.4f  ' % dist, end='')
                 print('')
+            if has_abnormal and dirname is not None:
+                with open('E:\\scrawl_images\\abnormal_1.1.txt', mode='a') as filename:
+                    filename.write(dirname + "\n")
+                print(dirname + ' 大于1.1')
+            if suspicious and dirname is not None:
+                with open('E:\\scrawl_images\\abnormal_1.0.txt', mode='a') as filename:
+                    filename.write(dirname + "\n")
+                print(dirname + ' 大于1.0')
             
             
 def load_and_align_data(image_paths, image_size, margin, gpu_memory_fraction):

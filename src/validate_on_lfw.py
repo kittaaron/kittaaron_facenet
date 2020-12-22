@@ -29,29 +29,34 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow as tf
-import numpy as np
 import argparse
-import facenet
-import lfw
 import os
 import sys
-from tensorflow.python.ops import data_flow_ops
-from sklearn import metrics
-from scipy.optimize import brentq
+
+import facenet
+import lfw
+import numpy as np
+import tensorflow as tf
 from scipy import interpolate
+from scipy.optimize import brentq
+from sklearn import metrics
+from tensorflow.python.ops import data_flow_ops
+
 
 def main(args):
-  
+    config = tf.ConfigProto(gpu_options=tf.GPUOptions(allow_growth=True))
     with tf.Graph().as_default():
       
-        with tf.Session() as sess:
+        with tf.Session(config=config) as sess:
             
             # Read the file containing the pairs used for testing
+            print(args.lfw_pairs)
             pairs = lfw.read_pairs(os.path.expanduser(args.lfw_pairs))
+            print(pairs)
 
             # Get the paths for the corresponding images
             paths, actual_issame = lfw.get_paths(os.path.expanduser(args.lfw_dir), pairs)
+            #print("len(paths): %d, len(ac_issame): %s" % (len(paths), actual_issame))
             
             image_paths_placeholder = tf.placeholder(tf.string, shape=(None,1), name='image_paths')
             labels_placeholder = tf.placeholder(tf.int32, shape=(None,1), name='labels')
@@ -107,6 +112,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     nrof_batches = nrof_images // batch_size
     emb_array = np.zeros((nrof_images, embedding_size))
     lab_array = np.zeros((nrof_images,))
+    print("nrof_batches: %d" % nrof_batches)
     for i in range(nrof_batches):
         feed_dict = {phase_train_placeholder:False, batch_size_placeholder:batch_size}
         emb, lab = sess.run([embeddings, labels], feed_dict=feed_dict)
@@ -115,7 +121,6 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
         if i % 10 == 9:
             print('.', end='')
             sys.stdout.flush()
-    print('')
     embeddings = np.zeros((nrof_embeddings, embedding_size*nrof_flips))
     if use_flipped_images:
         # Concatenate embeddings for flipped and non flipped version of the images
@@ -132,9 +137,12 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     
     auc = metrics.auc(fpr, tpr)
     print('Area Under Curve (AUC): %1.3f' % auc)
+    #print(fpr)
+    #print(tpr)
     eer = brentq(lambda x: 1. - x - interpolate.interp1d(fpr, tpr)(x), 0., 1.)
     print('Equal Error Rate (EER): %1.3f' % eer)
-    
+
+
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
     
@@ -159,6 +167,7 @@ def parse_arguments(argv):
     parser.add_argument('--use_fixed_image_standardization', 
         help='Performs fixed standardization of images.', action='store_true')
     return parser.parse_args(argv)
+
 
 if __name__ == '__main__':
     main(parse_arguments(sys.argv[1:]))

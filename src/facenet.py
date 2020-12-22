@@ -101,32 +101,33 @@ RANDOM_FLIP = 4
 FIXED_STANDARDIZATION = 8
 FLIP = 16
 def create_input_pipeline(input_queue, image_size, nrof_preprocess_threads, batch_size_placeholder):
-    images_and_labels_list = []
-    for _ in range(nrof_preprocess_threads):
-        filenames, label, control = input_queue.dequeue()
-        images = []
-        for filename in tf.unstack(filenames):
-            file_contents = tf.read_file(filename)
-            image = tf.image.decode_image(file_contents, 3)
-            image = tf.cond(get_control_flag(control[0], RANDOM_ROTATE),
-                            lambda:tf.py_func(random_rotate_image, [image], tf.uint8), 
-                            lambda:tf.identity(image))
-            image = tf.cond(get_control_flag(control[0], RANDOM_CROP), 
-                            lambda:tf.random_crop(image, image_size + (3,)), 
-                            lambda:tf.image.resize_image_with_crop_or_pad(image, image_size[0], image_size[1]))
-            image = tf.cond(get_control_flag(control[0], RANDOM_FLIP),
-                            lambda:tf.image.random_flip_left_right(image),
-                            lambda:tf.identity(image))
-            image = tf.cond(get_control_flag(control[0], FIXED_STANDARDIZATION),
-                            lambda:(tf.cast(image, tf.float32) - 127.5)/128.0,
-                            lambda:tf.image.per_image_standardization(image))
-            image = tf.cond(get_control_flag(control[0], FLIP),
-                            lambda:tf.image.flip_left_right(image),
-                            lambda:tf.identity(image))
-            #pylint: disable=no-member
-            image.set_shape(image_size + (3,))
-            images.append(image)
-        images_and_labels_list.append([images, label])
+    with tf.name_scope("tempscope"):
+        images_and_labels_list = []
+        for _ in range(nrof_preprocess_threads):
+            filenames, label, control = input_queue.dequeue()
+            images = []
+            for filename in tf.unstack(filenames):
+                file_contents = tf.read_file(filename)
+                image = tf.image.decode_image(file_contents, 3)
+                image = tf.cond(get_control_flag(control[0], RANDOM_ROTATE),
+                                lambda:tf.py_func(random_rotate_image, [image], tf.uint8),
+                                lambda:tf.identity(image))
+                image = tf.cond(get_control_flag(control[0], RANDOM_CROP),
+                                lambda:tf.random_crop(image, image_size + (3,)),
+                                lambda:tf.image.resize_image_with_crop_or_pad(image, image_size[0], image_size[1]))
+                image = tf.cond(get_control_flag(control[0], RANDOM_FLIP),
+                                lambda:tf.image.random_flip_left_right(image),
+                                lambda:tf.identity(image))
+                image = tf.cond(get_control_flag(control[0], FIXED_STANDARDIZATION),
+                                lambda:(tf.cast(image, tf.float32) - 127.5)/128.0,
+                                lambda:tf.image.per_image_standardization(image))
+                image = tf.cond(get_control_flag(control[0], FLIP),
+                                lambda:tf.image.flip_left_right(image),
+                                lambda:tf.identity(image))
+                #pylint: disable=no-member
+                image.set_shape(image_size + (3,))
+                images.append(image)
+            images_and_labels_list.append([images, label])
 
     image_batch, label_batch = tf.train.batch_join(
         images_and_labels_list, batch_size=batch_size_placeholder, 
@@ -415,6 +416,7 @@ def distance(embeddings1, embeddings2, distance_metric=0):
         dot = np.sum(np.multiply(embeddings1, embeddings2), axis=1)
         norm = np.linalg.norm(embeddings1, axis=1) * np.linalg.norm(embeddings2, axis=1)
         similarity = dot / norm
+        #dist = np.arccos(np.minimum(1, similarity)) / math.pi
         dist = np.arccos(similarity) / math.pi
     else:
         raise 'Undefined distance metric %d' % distance_metric 
@@ -438,8 +440,9 @@ def calculate_roc(thresholds, embeddings1, embeddings2, actual_issame, nrof_fold
         if subtract_mean:
             mean = np.mean(np.concatenate([embeddings1[train_set], embeddings2[train_set]]), axis=0)
         else:
-          mean = 0.0
+            mean = 0.0
         dist = distance(embeddings1-mean, embeddings2-mean, distance_metric)
+        print("dist: ", dist)
         
         # Find the best threshold for the fold
         acc_train = np.zeros((nrof_thresholds))
@@ -448,14 +451,22 @@ def calculate_roc(thresholds, embeddings1, embeddings2, actual_issame, nrof_fold
         best_threshold_index = np.argmax(acc_train)
         for threshold_idx, threshold in enumerate(thresholds):
             tprs[fold_idx,threshold_idx], fprs[fold_idx,threshold_idx], _ = calculate_accuracy(threshold, dist[test_set], actual_issame[test_set])
-        _, _, accuracy[fold_idx] = calculate_accuracy(thresholds[best_threshold_index], dist[test_set], actual_issame[test_set])
+        print("计算ROC-最佳门槛:" + str(thresholds[best_threshold_index]))
+        #thresholds[best_threshold_index] = 0.38
+        print('最终计算:')
+        _, _, accuracy[fold_idx] = calculate_accuracy(thresholds[best_threshold_index], dist[test_set], actual_issame[test_set], record_result = True)
           
         tpr = np.mean(tprs,0)
         fpr = np.mean(fprs,0)
     return tpr, fpr, accuracy
 
-def calculate_accuracy(threshold, dist, actual_issame):
+
+def calculate_accuracy(threshold, dist, actual_issame, record_result = False):
     predict_issame = np.less(dist, threshold)
+    if record_result:
+        s_file = open(os.path.join("D:\\scrawl_images", 'record_validate_on_lfw.txt'), 'a', encoding='utf-8')
+        s_file.write(str(predict_issame) + "\n")
+        s_file.close()
     tp = np.sum(np.logical_and(predict_issame, actual_issame))
     fp = np.sum(np.logical_and(predict_issame, np.logical_not(actual_issame)))
     tn = np.sum(np.logical_and(np.logical_not(predict_issame), np.logical_not(actual_issame)))
@@ -465,7 +476,6 @@ def calculate_accuracy(threshold, dist, actual_issame):
     fpr = 0 if (fp+tn==0) else float(fp) / float(fp+tn)
     acc = float(tp+tn)/dist.size
     return tpr, fpr, acc
-
 
   
 def calculate_val(thresholds, embeddings1, embeddings2, actual_issame, far_target, nrof_folds=10, distance_metric=0, subtract_mean=False):
@@ -491,12 +501,16 @@ def calculate_val(thresholds, embeddings1, embeddings2, actual_issame, far_targe
         far_train = np.zeros(nrof_thresholds)
         for threshold_idx, threshold in enumerate(thresholds):
             _, far_train[threshold_idx] = calculate_val_far(threshold, dist[train_set], actual_issame[train_set])
+        #  far_target为1e-3, threshold定位于far_train中满足far_target为1e-3这个条件的值的位置
+        #print(far_train)
         if np.max(far_train)>=far_target:
             f = interpolate.interp1d(far_train, thresholds, kind='slinear')
             threshold = f(far_target)
         else:
             threshold = 0.0
-    
+        print("计算Validate-门槛: " + str(threshold))
+        print(len(test_set))
+        print(np.sum(actual_issame[test_set]))
         val[fold_idx], far[fold_idx] = calculate_val_far(threshold, dist[test_set], actual_issame[test_set])
   
     val_mean = np.mean(val)
@@ -511,7 +525,9 @@ def calculate_val_far(threshold, dist, actual_issame):
     false_accept = np.sum(np.logical_and(predict_issame, np.logical_not(actual_issame)))
     n_same = np.sum(actual_issame)
     n_diff = np.sum(np.logical_not(actual_issame))
+    # 正例并且预测正确 / 所有正例
     val = float(true_accept) / float(n_same)
+    # 把反例预测成正例 / 总反例
     far = float(false_accept) / float(n_diff)
     return val, far
 

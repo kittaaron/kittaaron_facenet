@@ -34,7 +34,9 @@ import facenet
 def evaluate(embeddings, actual_issame, nrof_folds=10, distance_metric=0, subtract_mean=False):
     # Calculate evaluation metrics
     thresholds = np.arange(0, 4, 0.01)
+    # 从第0个开始，步进2取元素
     embeddings1 = embeddings[0::2]
+    # 从第1个开始，步进2取元素
     embeddings2 = embeddings[1::2]
     tpr, fpr, accuracy = facenet.calculate_roc(thresholds, embeddings1, embeddings2,
         np.asarray(actual_issame), nrof_folds=nrof_folds, distance_metric=distance_metric, subtract_mean=subtract_mean)
@@ -76,7 +78,7 @@ def add_extension(path):
 
 def read_pairs(pairs_filename):
     pairs = []
-    with open(pairs_filename, 'r') as f:
+    with open(pairs_filename, 'r', encoding='UTF-8') as f:
         for line in f.readlines()[1:]:
             pair = line.strip().split()
             pairs.append(pair)

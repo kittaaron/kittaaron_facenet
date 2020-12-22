@@ -1,0 +1,77 @@
+python src\align\align_dataset_mtcnn.py D:\education\CASIA-WebFace\CASIA-WebFace D:\education\CASIA-WebFace\CASIA-WebFace-112 --image_size 112 --gpu_memory_fraction 0.25
+
+python src\align\align_dataset_mtcnn.py D:\education\lfw\lfw D:\education\lfw\lfw_160 --image_size 160 --margin 32 --gpu_memory_fraction 0.25
+# 对齐casia_v5
+python src\align\align_dataset_mtcnn.py D:\education\CASIA_V5\CASIA-FACEV5 D:\education\CASIA_V5\CASIA-FACEV5_160 --image_size 160 --margin 32 --gpu_memory_fraction 0.8
+python src\align\align_dataset_mtcnn.py E:\scrawl_images\star_images E:\scrawl_images\star_images_182 --image_size 182 --margin 44 --gpu_memory_fraction 0.8
+python src\align\align_dataset_mtcnn.py D:\scrawl_images\images2 D:\scrawl_images\images2_160 --image_size 160 --margin 32 --gpu_memory_fraction 0.8
+
+# LFW验证
+python src/validate_on_lfw.py D:\education\lfw\lfw_160 E:\education\ML\models\20180402-114759 --distance_metric 1 --use_flipped_images --subtract_mean --use_fixed_image_standardization
+# 自己跑出来的模型验证
+python src/validate_on_lfw.py D:\education\lfw\lfw_160 D:\git\facenet\models\facenet\20200731-230821 --distance_metric 1 --use_flipped_images --subtract_mean --use_fixed_image_standardization
+# 用casia_v5 验证
+python src/validate_on_lfw.py D:\education\CASIA_V5\CASIA-FACEV5_160 E:\education\ML\models\20180402-114759 --distance_metric 1 --use_flipped_images --subtract_mean --use_fixed_image_standardization --lfw_pairs D:\education\CASIA_V5\CASIA-FACEV5_160\pairs.txt --lfw_nrof_folds 10
+python src/validate_on_lfw.py E:\scrawl_images\star_images_160 E:\education\ML\models\20180402-114759 --distance_metric 1 --use_flipped_images --subtract_mean --use_fixed_image_standardization --lfw_pairs E:\scrawl_images\star_images_160\pairs.txt --lfw_nrof_folds 10
+python src/validate_on_lfw.py D:\scrawl_images\images2_160 D:\git\facenet\models\facenet\20180402-114759 --distance_metric 1 --use_flipped_images --subtract_mean --use_fixed_image_standardization --lfw_pairs D:\scrawl_images\images2_160\pairs.txt --lfw_nrof_folds 10
+
+
+python src/train_softmax.py --logs_base_dir logs/facenet/ --models_base_dir models/facenet/ --data_dir D:\education\CASIA_V5\CASIA-FaceV5_182 --image_size 160 --model_def models.inception_resnet_v1 --lfw_dir D:\education\lfw\lfw_160 --optimizer ADAM --learning_rate -1 --max_nrof_epochs 150 --keep_probability 0.8 --random_crop --random_flip --use_fixed_image_standardization --learning_rate_schedule_file D:\git\facenet\data\learning_rate_schedule_classifier_casia.txt --weight_decay 5e-4 --embedding_size 512 --lfw_distance_metric 1 --lfw_use_flipped_images --lfw_subtract_mean --validation_set_split_ratio 0.05 --validate_every_n_epochs 10 --prelogits_norm_loss_factor 5e-4
+
+python src/align/align_dataset_mtcnn.py D:\education\vggface2_train/train/ D:\education\vggface2_train/train_182 --image_size 182 --margin 44
+
+# 从0开始训练vggface2
+python src/train_softmax.py --logs_base_dir logs/facenet/ --models_base_dir models/facenet/ --data_dir D:\education\vggface2_train\train_182 --image_size 160 --model_def models.inception_resnet_v1 --lfw_dir D:\education\lfw\lfw_160 --optimizer ADAM --learning_rate -1 --max_nrof_epochs 150 --keep_probability 0.8 --random_crop --random_flip --use_fixed_image_standardization --learning_rate_schedule_file D:\git\facenet\data\learning_rate_schedule_classifier_vggface2.txt --weight_decay 5e-4 --embedding_size 512 --lfw_distance_metric 1 --lfw_use_flipped_images --lfw_subtract_mean --validation_set_split_ratio 0.05 --validate_every_n_epochs 10 --prelogits_norm_loss_factor 5e-4 --batch_size 30 --center_loss_factor 0.5
+# 从0开始训练star_imgs
+python src/train_softmax.py --logs_base_dir logs/facenet/ --models_base_dir models/facenet/ --data_dir E:\scrawl_images\star_images_182 --image_size 160 --model_def models.inception_resnet_v1 --lfw_dir D:\education\CASIA_V5\CASIA-FACEV5_160 --lfw_pairs D:\education\CASIA_V5\CASIA-FACEV5_160\pairs.txt --optimizer ADAM --learning_rate -1 --max_nrof_epochs 150 --keep_probability 0.8 --random_crop --random_flip --use_fixed_image_standardization --learning_rate_schedule_file D:\git\facenet\data\learning_rate_schedule_classifier_star_from0.txt --weight_decay 5e-4 --embedding_size 512 --lfw_distance_metric 1 --lfw_use_flipped_images --lfw_subtract_mean --validation_set_split_ratio 0.05 --validate_every_n_epochs 10 --prelogits_norm_loss_factor 5e-4 --center_loss_factor 0.5  --batch_size 30
+# 从0开始训练CASIA-FACEV5
+python src/train_softmax.py --logs_base_dir logs/facenet/ --models_base_dir models/facenet/ --data_dir D:\education\CASIA_V5\CASIA-FaceV5_182 --image_size 160 --model_def models.inception_resnet_v1 --lfw_dir D:\education\CASIA_V5\CASIA-FACEV5_160 --lfw_pairs D:\education\CASIA_V5\CASIA-FACEV5_160\pairs.txt --optimizer ADAM --learning_rate -1 --max_nrof_epochs 150 --keep_probability 0.8 --random_crop --random_flip --use_fixed_image_standardization --learning_rate_schedule_file D:\git\facenet\data\learning_rate_schedule_classifier_star_from0.txt --weight_decay 5e-4 --embedding_size 512 --lfw_distance_metric 1 --lfw_use_flipped_images --lfw_subtract_mean --validation_set_split_ratio 0.05 --validate_every_n_epochs 10 --prelogits_norm_loss_factor 5e-4 --center_loss_factor 1  --batch_size 30
+# 从0训练casia-v5
+python src/train_softmax.py --logs_base_dir logs/facenet/ --models_base_dir models/facenet/ --data_dir D:\education\vggface2_train\train_182 --image_size 160 --model_def models.inception_resnet_v1 --lfw_dir D:\education\lfw\lfw_160 --optimizer ADAM --learning_rate -1 --max_nrof_epochs 150 --keep_probability 0.8 --random_crop --random_flip --use_fixed_image_standardization --learning_rate_schedule_file D:\git\facenet\data\learning_rate_schedule_classifier_vggface2.txt --weight_decay 5e-4 --embedding_size 512 --lfw_distance_metric 1 --lfw_use_flipped_images --lfw_subtract_mean --validation_set_split_ratio 0.05 --validate_every_n_epochs 10 --prelogits_norm_loss_factor 5e-4 --batch_size 30
+# 从0训练明星数据
+python src/train_softmax.py --logs_base_dir logs/facenet/ --models_base_dir models/facenet/ --data_dir E:\scrawl_images\star_images_182 --image_size 160 --model_def models.inception_resnet_v1 --lfw_dir D:\education\CASIA_V5\CASIA-FACEV5_160 --lfw_pairs D:\education\CASIA_V5\CASIA-FACEV5_160\pairs.txt --optimizer ADAM --learning_rate -1 --max_nrof_epochs 150 --keep_probability 0.8 --random_crop --random_flip --use_fixed_image_standardization --learning_rate_schedule_file D:\git\facenet\data\learning_rate_schedule_classifier_star.txt --weight_decay 5e-4 --embedding_size 512 --lfw_distance_metric 1 --lfw_use_flipped_images --lfw_subtract_mean --validation_set_split_ratio 0.05 --validate_every_n_epochs 10 --prelogits_norm_loss_factor 5e-4 --batch_size 30
+
+# 从已有模型开始训练
+python src/train_softmax.py --logs_base_dir logs/facenet/ --models_base_dir models/facenet/ --data_dir D:\education\CASIA_V5\CASIA-FaceV5_182 --image_size 160 --model_def models.inception_resnet_v1 --lfw_dir D:\education\lfw\lfw_160 --optimizer ADAM --learning_rate -1 --max_nrof_epochs 150 --keep_probability 0.8 --random_crop --random_flip --use_fixed_image_standardization --learning_rate_schedule_file D:\git\facenet\data\learning_rate_schedule_classifier_casia.txt --weight_decay 5e-4 --embedding_size 512 --lfw_distance_metric 1 --lfw_use_flipped_images --lfw_subtract_mean --validation_set_split_ratio 0.05 --validate_every_n_epochs 10 --prelogits_norm_loss_factor 5e-4 --batch_size 50
+######## 从20180402-114759模型迁移训练,learning rate:learning_rate_schedule_classifier_star.txt
+python src/train_softmax.py --logs_base_dir logs/facenet/ --models_base_dir models/facenet/ --data_dir E:\scrawl_images\star_images_182 --image_size 160 --model_def models.inception_resnet_v1 --lfw_dir E:\scrawl_images\star_images_160 --optimizer ADAM --learning_rate -1 --max_nrof_epochs 150 --keep_probability 0.8 --random_crop --random_flip --use_fixed_image_standardization --learning_rate_schedule_file D:\git\facenet\data\learning_rate_schedule_classifier_star.txt --weight_decay 5e-4 --embedding_size 512 --lfw_distance_metric 1 --lfw_use_flipped_images --lfw_subtract_mean --validation_set_split_ratio 0.05 --validate_every_n_epochs 10 --prelogits_norm_loss_factor 5e-4 --batch_size 50 --lfw_pairs  E:\scrawl_images\star_images_160\pairs.txt  --center_loss_factor 0.5 --pretrained_model E:\education\ML\models\20180402-114759
+######## 从20180402-114759模型迁移训练,learning rate:learning_rate_schedule_classifier_casiav5_transfer.txt
+python src/train_softmax_org.py --logs_base_dir logs/facenet/ --models_base_dir models/facenet/ --data_dir D:\education\CASIA_V5\CASIA-FaceV5_182 --image_size 160 --model_def models.inception_resnet_v1 --lfw_dir D:\education\CASIA_V5\CASIA-FACEV5_160 --optimizer ADAM --learning_rate -1 --max_nrof_epochs 150 --keep_probability 0.8 --random_crop --random_flip --use_fixed_image_standardization --learning_rate_schedule_file D:\git\facenet\data\learning_rate_schedule_classifier_casiav5_transfer.txt --weight_decay 5e-4 --embedding_size 512 --lfw_distance_metric 1 --lfw_use_flipped_images --lfw_subtract_mean --validation_set_split_ratio 0.05 --validate_every_n_epochs 10 --prelogits_norm_loss_factor 5e-4 --batch_size 50 --lfw_pairs  D:\education\CASIA_V5\CASIA-FACEV5_160\pairs.txt --pretrained_model E:\education\ML\models\20180402-114759
+
+# 可运行
+python src/train_softmax.py --logs_base_dir logs/facenet/ --models_base_dir models/facenet/ --data_dir D:\education\vggface2_train\train_182 --image_size 160 --model_def models.inception_resnet_v1 --lfw_dir D:\education\lfw\lfw_160 --optimizer ADAM --learning_rate -1 --max_nrof_epochs 150 --keep_probability 0.8 --random_crop --random_flip --use_fixed_image_standardization --learning_rate_schedule_file D:\git\facenet\data\learning_rate_schedule_classifier_casia_continue.txt --weight_decay 5e-4 --embedding_size 512 --lfw_distance_metric 1 --lfw_use_flipped_images --lfw_subtract_mean --validation_set_split_ratio 0.05 --validate_every_n_epochs 10 --prelogits_norm_loss_factor 5e-4 --batch_size 50 --pretrained_model models/facenet/20200731-230821/model-20200731-230821.ckpt-90
+python src/train_softmax.py --logs_base_dir logs/facenet/ --models_base_dir models/facenet/ --data_dir E:\scrawl_images\star_images_182 --image_size 160 --model_def models.inception_resnet_v1 --lfw_dir E:\scrawl_images\star_images_160 --optimizer ADAM --learning_rate -1 --max_nrof_epochs 150 --keep_probability 0.8 --random_crop --random_flip --use_fixed_image_standardization --learning_rate_schedule_file D:\git\facenet\data\learning_rate_schedule_classifier_casia_continue.txt --weight_decay 5e-4 --embedding_size 512 --lfw_distance_metric 1 --lfw_use_flipped_images --lfw_subtract_mean --validation_set_split_ratio 0.05 --validate_every_n_epochs 10 --prelogits_norm_loss_factor 5e-4 --batch_size 50 --pretrained_model models/facenet/20200731-230821/model-20200731-230821.ckpt-90 --lfw_pairs  E:\scrawl_images\star_pairs.txt
+
+# classifer
+python src/classifier.py TRAIN E:\scrawl_images\star_images_160 D:\git\facenet\models\facenet\20180402-114759\20180402-114759.pb E:\scrawl_images\star_images_160\models\star_classifier.pkl --batch_size 1000 --min_nrof_images_per_class 3 --nrof_train_images_per_class 8 --use_split_dataset
+
+
+# triplet 训练
+python src/train_tripletloss.py --logs_base_dir logs/facenet/ --models_base_dir models/facenet/ --data_dir D:\education\vggface2_train\train_182 --image_size 160 --model_def models.inception_resnet_v1 --lfw_dir D:\education\lfw\lfw_160 --optimizer ADAM --learning_rate -1 --max_nrof_epochs 150 --keep_probability 0.8 --random_crop --random_flip --learning_rate_schedule_file D:\git\facenet\data\learning_rate_schedule_classifier_vggface2.txt --weight_decay 5e-4 --embedding_size 512 --batch_size 20
+
+# 用tensorboard查看结果
+tensorboard --logdir logs --host 0.0.0.0
+
+### 模型LFW验证结果
+20180402-114759：Accuracy: 0.99550+-0.00342 Validation rate: 0.98600+-0.00975 @ FAR=0.00100 Area Under Curve (AUC): 1.000 Equal Error Rate (EER): 0.004
+20200801-224716: Accuracy: 0.99117+-0.00435 Validation rate: 0.96700+-0.01567 @ FAR=0.00100
+20200802-105736: Accuracy: 0.99267+-0.00359 Validation rate: 0.96967+-0.01278 @ FAR=0.00100
+20200803-100815: Accuracy: 0.99233+-0.00318 Validation rate: 0.95900+-0.01585 @ FAR=0.00100
+20201012-063331: Accuracy: 0.99267+-0.00423 Validation rate: 0.97700+-0.01159 @ FAR=0.00067
+20201012-222047: Accuracy: 0.99283+-0.00325 Validation rate: 0.97933+-0.01133 @ FAR=0.00067
+
+# 自制数据验证结果 -- 使用20180402-114759
+cusom lfw:      Accuracy: 0.99350+-0.00293 Validation rate: 0.96967+-0.01005 @ FAR=0.00133 Area Under Curve (AUC): 1.000 Equal Error Rate (EER): 0.006
+CASIAV5:        Accuracy: 0.98633+-0.00371 Validation rate: 0.00267+-0.00533 @ FAR=0.00233 Area Under Curve (AUC): 0.996
+CASIAV5在star迁移训练过20201128-121632: Accuracy: 0.98517+-0.00213 Validation rate: 0.90733+-0.01195 @ FAR=0.00117 Area Under Curve (AUC): 0.999 Equal Error Rate (EER): 0.015
+CASIAV5_5e-3:   Accuracy: 0.98633+-0.00371 Validation rate: 0.94867+-0.01240 @ FAR=0.00533 Area Under Curve (AUC): 0.996
+CASIAV5_12000条:  Accuracy: 0.98708+-0.00409 Validation rate: 0.92033+-0.01301 @ FAR=0.00100 Area Under Curve (AUC): 0.999 Equal Error Rate (EER): 0.013
+stars_160:      Accuracy: 0.95913+-0.00248 Validation rate: 0.66270+-0.01946 @ FAR=0.00100 Area Under Curve (AUC): 0.994 Equal Error Rate (EER): 0.041
+star_casiav5:   Accuracy: 0.98250+-0.00638 Validation rate: 0.00467+-0.00806 @ FAR=0.00267 Area Under Curve (AUC): 0.996
+
+# star上20180402-114759和20201128-121632 模型对比
+20180402-114759: Accuracy: 0.95913+-0.00248 Validation rate: 0.66270+-0.01946 @ FAR=0.00100 Area Under Curve (AUC): 0.994 Equal Error Rate (EER): 0.041
+20201128-121632: Accuracy: 0.95183+-0.00584 Validation rate: 0.67133+-0.01784 @ FAR=0.00133 Area Under Curve (AUC): 0.990 Equal Error Rate (EER): 0.049
+
+# 从0训练star
+Accuracy: 0.66917+-0.01794 Validation rate: 0.03000+-0.00789 @ FAR=0.00100 Saving statistics
